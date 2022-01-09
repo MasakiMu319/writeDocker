@@ -27,6 +27,7 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig) {
 	parent.Wait()
 }
 
+// sendInitCommand 在初始化容器的时候发送用户输入的参数
 func sendInitCommand(comArray []string, writePipe *os.File) {
 	command := strings.Join(comArray, " ")
 	logrus.Infof("command all is %s", command)

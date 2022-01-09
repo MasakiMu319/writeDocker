@@ -27,11 +27,14 @@ func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 	}
+	// 传入管道文件读取端的句柄；
 	cmd.ExtraFiles = []*os.File{readPipe}
 	return cmd, writePipe
 }
 
 func NewPipe() (*os.File, *os.File, error) {
+	// 生成一个匿名管道，读写变量都是文件类型；
+	// 与 Linux 系统管道的定义保持一致；
 	read, write, err := os.Pipe()
 	if err != nil {
 		return nil, nil, err
