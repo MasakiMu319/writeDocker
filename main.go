@@ -21,7 +21,6 @@ func main() {
 
 	app.Before = func(context *cli.Context) error {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
-
 		logrus.SetOutput(os.Stdout)
 		return nil
 	}
