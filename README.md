@@ -22,6 +22,20 @@ This step we use a small image - busybox, and through pivot_root help our docker
 
 ![carbon-3](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-3.png)
 
+## Step 4：More private with your container
+
+This step we use AUFS help us initial Read only layer and Write layer. 🥳
+
+> ⚠️ Remember open two terminals !
+
+**Terminal 1：**
+
+![carbon-4](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-4.png)
+
+**Terminal 2:**
+
+![carbon-5](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-5.png)
+
 ## Little tips
 
 If you code with Goland but run project in virtual machine, you can exec this command.

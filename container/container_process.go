@@ -83,7 +83,10 @@ func CreateMountPoint(rootURL, mntURL string) {
 		logrus.Errorf("Mkdir dir %s error : %v", mntURL, err)
 	}
 	dirs := "dirs=" + rootURL + "writeLayer:" + rootURL + "busybox"
-	cmd := exec.Command("mount", " -t", "aufs", "-o", dirs, "none", mntURL)
+	// mount -t aufs -o dirs=/root/writeLayer:/root/busybox none /root/mnt/
+	// 使用 aufs 技术做到读写层分离，不影响实际镜像；
+	// 参考链接 https://cloud.tencent.com/developer/article/1518056
+	cmd := exec.Command("mount", "-t", "aufs", "-o", dirs, "none", mntURL)
 	logrus.Infof("cmd is %v", cmd)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

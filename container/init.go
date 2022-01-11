@@ -68,7 +68,7 @@ func pivotRoot(root string) error {
 	  为了使当前root的老 root 和新 root 不在同一个文件系统下，我们把root重新mount了一次
 	  bind mount是把相同的内容换了一个挂载点的挂载方法
 	*/
-	//syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, "")
+	syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, "")
 	if err := syscall.Mount(root, root, "bind", syscall.MS_BIND|syscall.MS_REC, ""); err != nil {
 		return fmt.Errorf("Mount rootfs to itself error: %v", err)
 	}
