@@ -2,6 +2,8 @@
 
 This is a project to write a docker by yourself.
 
+![carbon-8](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-8.png)
+
 > PLEASE RUN PROJECT WITH LINUX (like ubuntu).
 >
 > Or you may failed 😥
