@@ -6,12 +6,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 )
 
 // NewParentProcess 每次从当前进程的运行环境中 fork 一个新的进程，
 // 并使用 namespace 进行初始化；
-func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {
 	readPipe, writePipe, err := NewPipe()
 	if err != nil {
 		logrus.Errorf("New pipe error %v", err)
@@ -31,7 +32,7 @@ func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
 	cmd.ExtraFiles = []*os.File{readPipe}
 	mntURL := "/root/mnt/"
 	rootURL := "/root/"
-	NewWorkSpace(rootURL, mntURL)
+	NewWorkSpace(rootURL, mntURL, volume)
 	cmd.Dir = mntURL
 	return cmd, writePipe
 }
@@ -48,10 +49,20 @@ func NewPipe() (*os.File, *os.File, error) {
 
 // NewWorkSpace 创建容器文件系统，进一步隔离容器和镜像，
 // 实现容器中的操作不影响镜像；
-func NewWorkSpace(rootURL, mntURL string) {
+func NewWorkSpace(rootURL, mntURL, volume string) {
 	CreateReadOnlyLayer(rootURL)
 	CreateWriteLayer(rootURL)
 	CreateMountPoint(rootURL, mntURL)
+	if volume != "" {
+		volumeURLs := volumeUrlExtract(volume)
+		length := len(volumeURLs)
+		if length == 2 && volumeURLs[0] != "" && volumeURLs[1] != "" {
+			MountVolume(rootURL, mntURL, volumeURLs)
+			logrus.Infof("%q", volumeURLs)
+		} else {
+			logrus.Infof("Volume parameter input is not correct.")
+		}
+	}
 }
 
 func CreateReadOnlyLayer(rootURL string) {
@@ -96,8 +107,37 @@ func CreateMountPoint(rootURL, mntURL string) {
 	}
 }
 
-func DeleteWorkSpace(rootURL, mntURL string) {
-	DeleteMountPoint(rootURL, mntURL)
+func MountVolume(rootURL, mntURL string, volumeURLs []string) {
+	parentUrl := volumeURLs[0]
+	if err := os.Mkdir(parentUrl, 0777); err != nil && os.IsNotExist(err) {
+		logrus.Infof("Mkdir parent dir %s error : %v", parentUrl, err)
+	}
+	containerUrl := volumeURLs[1]
+	containerVolumeURL := mntURL + containerUrl
+	if err := os.Mkdir(containerVolumeURL, 0777); err != nil && os.IsNotExist(err) {
+		logrus.Infof("Mkdir container dir %s error : %v", containerVolumeURL, err)
+	}
+	dirs := "dirs=" + parentUrl
+	cmd := exec.Command("mount", "-t", "aufs", "-o", dirs, "none", containerVolumeURL)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		logrus.Errorf("Mount volume failed : %v", err)
+	}
+}
+
+func DeleteWorkSpace(rootURL, mntURL, volume string) {
+	if volume != "" {
+		volumeURLs := volumeUrlExtract(volume)
+		length := len(volumeURLs)
+		if length == 2 && volumeURLs[0] != "" && volumeURLs[1] != "" {
+			DeleteMountPointWithVolume(rootURL, mntURL, volumeURLs)
+		} else {
+			DeleteMountPoint(rootURL, mntURL)
+		}
+	} else {
+		DeleteMountPoint(rootURL, mntURL)
+	}
 	DeleteWriteLayer(rootURL)
 }
 
@@ -120,6 +160,26 @@ func DeleteMountPoint(rootURL, mntURL string) {
 	}
 }
 
+func DeleteMountPointWithVolume(rootURL, mntURL string, volumeURLs []string) {
+	containerUrl := mntURL + volumeURLs[1]
+	cmd := exec.Command("umount", containerUrl)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		logrus.Errorf("Umount volume failed : %v", err)
+	}
+
+	cmd = exec.Command("umount", mntURL)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		logrus.Errorf("Umount mount point failed : %v", err)
+	}
+	if err := os.RemoveAll(mntURL); err != nil {
+		logrus.Errorf("Remove mount point dir failed : %v", err)
+	}
+}
+
 func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -130,4 +190,10 @@ func PathExists(path string) (bool, error) {
 		return false, err
 	}
 	return false, err
+}
+
+func volumeUrlExtract(volume string) []string {
+	var volumeURLs []string
+	volumeURLs = strings.Split(volume, ":")
+	return volumeURLs
 }

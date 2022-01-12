@@ -19,6 +19,10 @@ var (
 				Usage: "enable tty",
 			},
 			cli.StringFlag{
+				Name:  "v",
+				Usage: "volume",
+			},
+			cli.StringFlag{
 				Name:  "m",
 				Usage: "memory limit",
 			},
@@ -43,13 +47,14 @@ var (
 				cmdArray = append(cmdArray, arg)
 			}
 			tty := context.Bool("ti")
+			volume := context.String("v")
 			// use Run function to start container
 			resConf := &subsystems.ResourceConfig{
 				MemoryLimit: context.String("m"),
 				CpuSet:      context.String("cpuset"),
 				CpuShare:    context.String("cpushare"),
 			}
-			Run(tty, cmdArray, resConf)
+			Run(tty, cmdArray, resConf, volume)
 			return nil
 		},
 	}
