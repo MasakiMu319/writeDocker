@@ -36,6 +36,16 @@ This step we use AUFS help us initial Read only layer and Write layer. 🥳
 
 ![carbon-5](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-5.png)
 
+## Step 5：Add volume and commit
+
+**volume:**
+
+![carbon-7](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-7.png)
+
+**commit: package container into image**
+
+![carbon-6](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-6.png)
+
 ## Little tips
 
 If you code with Goland but run project in virtual machine, you can exec this command.
