@@ -10,6 +10,23 @@ import (
 	"syscall"
 )
 
+type ContainerInfo struct {
+	Pid         string `json:"pid"`
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	Command     string `json:"command"`
+	CreatedTime string `json:"createdTime"`
+	Status      string `json:"status"`
+}
+
+var (
+	RUNNING             = "running"
+	STOP                = "stopped"
+	Exit                = "exited"
+	DefaultInfoLocation = "/var/run/mydocker/%s/"
+	ConfigName          = "config.json"
+)
+
 // NewParentProcess 每次从当前进程的运行环境中 fork 一个新的进程，
 // 并使用 namespace 进行初始化；
 func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {

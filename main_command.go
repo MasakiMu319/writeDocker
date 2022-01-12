@@ -18,6 +18,10 @@ var (
 				Name:  "ti",
 				Usage: "enable tty",
 			},
+			cli.BoolFlag{
+				Name:  "d",
+				Usage: "detach container",
+			},
 			cli.StringFlag{
 				Name:  "v",
 				Usage: "volume",
@@ -34,6 +38,10 @@ var (
 				Name:  "cpuset",
 				Usage: "cpuset limit",
 			},
+			cli.StringFlag{
+				Name:  "name",
+				Usage: "container name",
+			},
 		},
 		// real action of run command.
 		Action: func(context *cli.Context) error {
@@ -47,14 +55,21 @@ var (
 				cmdArray = append(cmdArray, arg)
 			}
 			tty := context.Bool("ti")
+			detach := context.Bool("d")
 			volume := context.String("v")
+
+			if tty && detach {
+				return fmt.Errorf("ti and d paramer can not both provided")
+			}
 			// use Run function to start container
 			resConf := &subsystems.ResourceConfig{
 				MemoryLimit: context.String("m"),
 				CpuSet:      context.String("cpuset"),
 				CpuShare:    context.String("cpushare"),
 			}
-			Run(tty, cmdArray, resConf, volume)
+			logrus.Infof("Running in an interactive environment : %v", tty)
+			containerName := context.String("name")
+			Run(tty, cmdArray, resConf, volume, containerName)
 			return nil
 		},
 	}
@@ -80,6 +95,15 @@ var (
 			}
 			imageName := context.Args().Get(0)
 			commitContainer(imageName)
+			return nil
+		},
+	}
+
+	listCommand = cli.Command{
+		Name:  "ps",
+		Usage: "list all the containers",
+		Action: func(context *cli.Context) error {
+			ListContainers()
 			return nil
 		},
 	}
