@@ -14,8 +14,16 @@ import (
 	"writeDocker/container"
 )
 
-func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume, containerName string) {
-	parent, writePipe := container.NewParentProcess(tty, volume)
+func Run(tty bool, comArray []string, res *subsystems.ResourceConfig,
+	volume, containerName, imageName string, envSlice []string) {
+	containerId := randStringBytes(10)
+	if containerName == "" {
+		containerName = containerId
+	}
+
+	parent, writePipe := container.NewParentProcess(
+		tty, volume, containerName, imageName, envSlice)
+
 	if parent == nil {
 		logrus.Errorf("New parent process error")
 		return
@@ -25,7 +33,7 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume, co
 	}
 
 	// 生成容器名
-	containerName, err := recordContainerInfo(parent.Process.Pid, comArray, containerName)
+	containerName, err := recordContainerInfo(parent.Process.Pid, comArray, containerName, containerId, volume)
 	if err != nil {
 		logrus.Errorf("Record container info error : %v", err)
 		return
@@ -39,9 +47,10 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume, co
 	sendInitCommand(comArray, writePipe)
 	if tty {
 		parent.Wait()
-		mntURL := "/root/mnt/"
-		rootURL := "/root/"
-		container.DeleteWorkSpace(rootURL, mntURL, volume)
+		//mntURL := "/root/mnt/"
+		//rootURL := "/root/"
+		//container.DeleteWorkSpace(rootURL, mntURL, volume)
+		container.DeleteWorkSpace(volume, containerName)
 		deleteContainerInfo(containerName)
 	}
 	//parent.Wait()
@@ -55,13 +64,9 @@ func sendInitCommand(comArray []string, writePipe *os.File) {
 	writePipe.Close()
 }
 
-func recordContainerInfo(containerPID int, commandArray []string, containerName string) (string, error) {
-	id := randStringBytes(10)
+func recordContainerInfo(containerPID int, commandArray []string, containerName, id, volume string) (string, error) {
 	createTime := time.Now().Format("2006-01-02 15:04:05")
 	command := strings.Join(commandArray, "")
-	if containerName == "" {
-		containerName = id
-	}
 	containerInfo := &container.ContainerInfo{
 		Id:          id,
 		Pid:         strconv.Itoa(containerPID),
@@ -69,6 +74,7 @@ func recordContainerInfo(containerPID int, commandArray []string, containerName 
 		CreatedTime: createTime,
 		Status:      container.RUNNING,
 		Name:        containerName,
+		Volume:      volume,
 	}
 
 	jsonBytes, err := json.Marshal(containerInfo)
