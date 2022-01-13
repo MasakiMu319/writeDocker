@@ -48,10 +48,26 @@ This step we use AUFS help us initial Read only layer and Write layer. 🥳
 
 ![carbon-6](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-6.png)
 
+## Step 6：Add detach and list
+
+Well……This step we need add container info file.After all, store information into file.
+
+![carbon-9](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-9.png)
+
+## Step 7：Make our docker easy to use
+
+This step we impleted more features(em… you may thought they were bugs 🤡).
+
+Anyway, we made it more like a real docker.
+
+You can create many containers and don't need worry about their volume files, all you need to do is preparing one or more images before use. 🤣 And network will get adapt in next version.
+
+So, the newest is the BEST ! 😼
+
+![carbon-10](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-10.png)
+
 ## Little tips
 
 If you code with Goland but run project in virtual machine, you can exec this command.
-
-scp -rp GolandProjects/writeDocker ubuntu@192.168.64.13:/home/ubuntu
 
 ![carbon1](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon1.png)
