@@ -12,17 +12,17 @@ import (
 	"writeDocker/cgroups"
 	"writeDocker/cgroups/subsystems"
 	"writeDocker/container"
+	"writeDocker/network"
 )
 
-func Run(tty bool, comArray []string, res *subsystems.ResourceConfig,
-	volume, containerName, imageName string, envSlice []string) {
+func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string,
+	envSlice []string, nw string, portmapping []string) {
 	containerId := randStringBytes(10)
 	if containerName == "" {
 		containerName = containerId
 	}
 
-	parent, writePipe := container.NewParentProcess(
-		tty, volume, containerName, imageName, envSlice)
+	parent, writePipe := container.NewParentProcess(tty, volume, containerName, imageName, envSlice)
 
 	if parent == nil {
 		logrus.Errorf("New parent process error")
@@ -44,12 +44,23 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig,
 	cgroupManager.Set(res)
 	cgroupManager.Apply(parent.Process.Pid)
 
+	if nw != "" {
+		network.Init()
+		containerInfo := &container.ContainerInfo{
+			Id:          containerId,
+			Pid:         strconv.Itoa(parent.Process.Pid),
+			Name:        containerName,
+			PortMapping: portmapping,
+		}
+		if err = network.Connect(nw, containerInfo); err != nil {
+			logrus.Errorf("Error Connect Network %v", err)
+			return
+		}
+	}
+
 	sendInitCommand(comArray, writePipe)
 	if tty {
 		parent.Wait()
-		//mntURL := "/root/mnt/"
-		//rootURL := "/root/"
-		//container.DeleteWorkSpace(rootURL, mntURL, volume)
 		container.DeleteWorkSpace(volume, containerName)
 		deleteContainerInfo(containerName)
 	}
