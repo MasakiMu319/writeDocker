@@ -29,7 +29,7 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume, co
 		return
 	}
 	if err := parent.Start(); err != nil {
-		logrus.Error(err)
+		logrus.Errorf("parent start error %v", err)
 	}
 
 	// 生成容器名

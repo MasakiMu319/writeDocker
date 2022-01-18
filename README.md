@@ -1,8 +1,14 @@
-# Write your own docker
+# Write your own docker 🥳
+
+> **All work has been completed, so please feel free to refer to it.**
 
 This is a project to write a docker by yourself.
 
-![carbon-8](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-8.png)
+![carbon-12](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-12.png)
+
+Finally, our docker supports mapping container ports to host ports, and here is a test done with an nginx image.
+
+![carbon-13](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-13.png)
 
 > PLEASE RUN PROJECT WITH LINUX (like ubuntu).
 >
@@ -68,6 +74,8 @@ So, the newest is the BEST ! 😼
 
 ## Step 8：Implete network
 
+In this step we implement the network connection of the container through bridge and veth.
+
 ![carbon-11](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon-11.png)
 
 ## Little tips
@@ -75,3 +83,5 @@ So, the newest is the BEST ! 😼
 If you code with Goland but run project in virtual machine, you can exec this command.
 
 ![carbon1](https://typora-photos.oss-cn-shenzhen.aliyuncs.com/carbon1.png)
+
+> **The most important thing is to resolve bugs by logging**
