@@ -1,6 +1,6 @@
 # Write your own docker 🥳
 
-> **All work has been completed, so please feel free to refer to it.**
+> **All work has been done, so please feel free to enjoy it.**
 
 This is a project to write a docker by yourself.
 
