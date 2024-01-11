@@ -1,3 +1,6 @@
+//go:build linux
+// +build linux
+
 package container
 
 import (
@@ -52,7 +55,11 @@ func setUpMount() {
 		return
 	}
 	logrus.Infof("Current location is %s ", root)
-	pivotRoot(root)
+
+	err = pivotRoot(root)
+	if err != nil {
+		logrus.Errorf("pivot root error: %v", err)
+	}
 	// 先让新的 mount namespace 独立，否则退出运行后就会使得主机上的 /proc 需要重新 mount
 	syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, "")
 	// MS_NOEXEC 在本文件系统中不允许运行其他程序；
@@ -63,6 +70,20 @@ func setUpMount() {
 	syscall.Mount("tmpfs", "/dev", "tmpfs", syscall.MS_NOSUID|syscall.MS_STRICTATIME, "mode=755")
 }
 
+// pivotRoot is a function that changes the root directory of the current process to the specified directory.
+// It performs the following steps:
+//  1. Mounts a new root file system using the specified directory as both the source and target.
+//     This is done to ensure that the old and new root are not on the same file system.
+//  2. Creates a directory named ".pivot_root" inside the new root to store the old root.
+//     If the directory already exists, it is not recreated.
+//  3. Calls the PivotRoot system call to switch the root file system to the new root.
+//     The old root is mounted at "root/.pivot_root".
+//  4. Changes the current working directory to the new root.
+//  5. Unmounts the old root from "root/.pivot_root".
+//  6. Deletes the ".pivot_root" directory.
+//
+// The function takes the `root` string parameter, which specifies the new root directory path.
+// It returns an error if any of the steps fail, or nil if successful.
 func pivotRoot(root string) error {
 	/** mount --bind ${root} ${root}
 	  为了使当前root的老 root 和新 root 不在同一个文件系统下，我们把root重新mount了一次

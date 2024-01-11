@@ -31,6 +31,7 @@ var (
 	RootUrl             = "/root"
 	MntUrl              = "/root/mnt/%s"
 	WriteLayerUrl       = "/root/writeLayer/%s"
+	WorkDirUrl          = "/root/workDir/%s"
 )
 
 // NewParentProcess 每次从当前进程的运行环境中 fork 一个新的进程，
@@ -44,6 +45,7 @@ func NewParentProcess(tty bool, volume, containerName, imageName string,
 	}
 	cmd := exec.Command("/proc/self/exe", "init")
 	cmd.SysProcAttr = &syscall.SysProcAttr{
+		// Linux only.
 		Cloneflags: syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS |
 			syscall.CLONE_NEWNET | syscall.CLONE_NEWIPC,
 	}

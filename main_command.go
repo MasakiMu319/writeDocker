@@ -98,7 +98,7 @@ var (
 	initCommand = cli.Command{
 		Name: "init",
 		Usage: "Init container process run user's process in container." +
-			"You can not call it outside",
+			"You can not use it directly",
 		// real action of init
 		Action: func(context *cli.Context) error {
 			logrus.Infof("init come on")

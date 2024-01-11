@@ -8,10 +8,8 @@ import (
 	"strings"
 )
 
-// NewWorkSpace 创建容器文件系统，进一步隔离容器和镜像，
-// 实现容器中的操作不影响镜像；
 func NewWorkSpace(volume, imageName, containerName string) {
-	makeMntAndWriteLayer()
+	makeWorkspace()
 	CreateReadOnlyLayer(imageName)
 	CreateWriteLayer(containerName)
 	CreateMountPoint(containerName, imageName)
@@ -54,20 +52,33 @@ func CreateWriteLayer(containerName string) {
 	}
 }
 
+// CreateMountPoint creates the mount point for a container, using overlayfs to isolate the container from the image.
+// The function takes the container name and image name as parameters.
+// It creates the necessary directories for the mount point, including the lower, upper, and work directories.
+// Then it constructs the overlayfs options with the image location as the lower directory, the writer layer as the upper directory,
+// and the work directory as the work directory.
+// Finally, it runs the "mount" command to mount the overlayfs with the constructed options to the mount point directory.
+// If successful, it returns nil. Otherwise, it returns an error.
 func CreateMountPoint(containerName, imageName string) error {
 	mntUrl := fmt.Sprintf(MntUrl, containerName)
 	if err := os.Mkdir(mntUrl, 0777); err != nil && os.IsNotExist(err) {
 		logrus.Errorf("Mkdir dir %s error : %v", mntUrl, err)
 	}
-	tmpWriterLayer := fmt.Sprintf(WriteLayerUrl, containerName)
 	tmpImageLocation := RootUrl + "/" + imageName
+	tmpWriterLayer := fmt.Sprintf(WriteLayerUrl, containerName)
+	if err := os.Mkdir(tmpWriterLayer, 0777); err != nil && os.IsNotExist(err) {
+		logrus.Errorf("Mkdir dir %s error : %v", tmpWriterLayer, err)
+	}
+	tmpWorkDir := fmt.Sprintf(WorkDirUrl, containerName)
+	if err := os.Mkdir(tmpWorkDir, 0777); err != nil && os.IsNotExist(err) {
+		logrus.Errorf("Mkdir dir %s error : %v", tmpWorkDir, err)
+	}
+	dirs := "lowerdir=" + tmpImageLocation + ",upperdir=" + tmpWriterLayer + ",workdir=" + tmpWorkDir
 	mntURL := fmt.Sprintf(MntUrl, containerName)
-	dirs := "dirs=" + tmpWriterLayer + ":" + tmpImageLocation
-	// mount -t aufs -o dirs=/root/writeLayer:/root/busybox none /root/mnt/
-	// 使用 aufs 技术做到读写层分离，不影响实际镜像；
-	// 参考链接 https://cloud.tencent.com/developer/article/1518056
-	cmd := exec.Command("mount", "-t", "aufs", "-o", dirs, "none", mntURL)
-	logrus.Infof("cmd is %v", cmd)
+	// mount -t overlay -o lowerdir=/root/busybox,upperdir=/root/writeLayer,workdir=/root/workdir overlay /root/mnt/
+	// Update date: 2024.01 Change aufs with overlay, the aufs has decreased .
+	cmd := exec.Command("mount", "-t", "overlay", "-o", dirs, "overlay", mntURL)
+	logrus.Infof("cmd is : %v", cmd)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -77,20 +88,29 @@ func CreateMountPoint(containerName, imageName string) error {
 	return nil
 }
 
+// MountVolume creates a mount point for a volume in a container.
+// The function takes a slice of volume URLs and the container name as parameters.
+// It creates the necessary directories for the mount point, including the host volume directory and the container directory.
+// Then it uses the "mount --bind" command to mount the host volume directory to the container directory.
+// If successful, it returns nil. Otherwise, it returns an error.
 func MountVolume(volumeURLs []string, containerName string) error {
+	// host volume directory.
 	parentUrl := volumeURLs[0]
 	if err := os.Mkdir(parentUrl, 0777); err != nil && os.IsNotExist(err) {
 		logrus.Infof("Mkdir parent dir %s error : %v", parentUrl, err)
 	}
+	// container directory.
 	containerUrl := volumeURLs[1]
 	mntURL := fmt.Sprintf(MntUrl, containerName)
 	containerVolumeURL := mntURL + "/" + containerUrl
 	if err := os.Mkdir(containerVolumeURL, 0777); err != nil && os.IsNotExist(err) {
 		logrus.Infof("Mkdir container dir %s error : %v", containerVolumeURL, err)
 	}
-	dirs := "dirs=" + parentUrl
-	_, err := exec.Command("mount", "-t", "aufs", "-o", dirs, "none", containerVolumeURL).CombinedOutput()
-	if err != nil {
+	// use mount --bind instead of overlay FS.
+	cmd := exec.Command("mount", "--bind", parentUrl, containerVolumeURL)
+	logrus.Infof("cmd is : %v", cmd)
+
+	if err := cmd.Run(); err != nil {
 		logrus.Errorf("Mount volume failed : %v", err)
 		return err
 	}
@@ -162,8 +182,16 @@ func PathExists(path string) (bool, error) {
 	return false, err
 }
 
-func makeMntAndWriteLayer() {
-	mntDir, writeLayerDir := "/root/mnt", "/root/writeLayer"
+// makeWorkspace is a function that creates workspace directories for a container.
+// It creates three directories: mntDir, writeLayerDir, and workDir.
+// If any of these directories do not exist, the function creates them with 0622 permission.
+// The mntDir directory is created at "/root/mnt", the writeLayerDir directory is created at "/root/writeLayer",
+// and the workDir directory is created at "/root/workDir".
+//
+// Example usage:
+// makeWorkspace()
+func makeWorkspace() {
+	mntDir, writeLayerDir, workDir := "/root/mnt", "/root/writeLayer", "/root/workDir"
 	_, err := os.Stat(mntDir)
 	if os.IsNotExist(err) {
 		if err = os.Mkdir("/root/mnt", 0622); err != nil {
@@ -174,6 +202,12 @@ func makeMntAndWriteLayer() {
 	if os.IsNotExist(err) {
 		if err = os.Mkdir("/root/writeLayer", 0622); err != nil {
 			logrus.Errorf("Make writelayer error : %v", err)
+		}
+	}
+	_, err = os.Stat(workDir)
+	if os.IsNotExist(err) {
+		if err = os.Mkdir("/root/workDir", 0622); err != nil {
+			logrus.Errorf("Make work dir error : %v", err)
 		}
 	}
 }

@@ -22,6 +22,7 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume, co
 		containerName = containerId
 	}
 
+	// TODO: 1.10 problem is here.
 	parent, writePipe := container.NewParentProcess(tty, volume, containerName, imageName, envSlice)
 
 	if parent == nil {
@@ -32,7 +33,7 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume, co
 		logrus.Errorf("parent start error %v", err)
 	}
 
-	// 生成容器名
+	// generate containerName.
 	containerName, err := recordContainerInfo(parent.Process.Pid, comArray, containerName, containerId, volume)
 	if err != nil {
 		logrus.Errorf("Record container info error : %v", err)
@@ -67,7 +68,7 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume, co
 	//parent.Wait()
 }
 
-// sendInitCommand 在初始化容器的时候发送用户输入的参数
+// sendInitCommand send user's params value when init container.
 func sendInitCommand(comArray []string, writePipe *os.File) {
 	command := strings.Join(comArray, " ")
 	logrus.Infof("command all is %s", command)
