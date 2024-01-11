@@ -22,7 +22,6 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume, co
 		containerName = containerId
 	}
 
-	// TODO: 1.10 problem is here.
 	parent, writePipe := container.NewParentProcess(tty, volume, containerName, imageName, envSlice)
 
 	if parent == nil {
@@ -40,10 +39,21 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, volume, co
 		return
 	}
 
-	cgroupManager := cgroups.NewCgroupManager("mydocker-cgroup")
-	defer cgroupManager.Destroy()
+	cgroupManager := cgroups.NewCgroupManager(containerName)
+	defer func(cGroupPath string) {
+		err = subsystems.RemoveCGroup(cGroupPath)
+		if err != nil {
+			logrus.Errorf("Error removing cgroup: %v", err)
+		}
+	}(containerName)
+
 	cgroupManager.Set(res)
-	cgroupManager.Apply(parent.Process.Pid)
+
+	err = subsystems.ApplyCGroupProcess(containerName, parent.Process.Pid)
+	if err != nil {
+		logrus.Errorf("Error applying cgroup process: %v", err)
+		return
+	}
 
 	if nw != "" {
 		network.Init()

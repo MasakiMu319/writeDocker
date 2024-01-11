@@ -14,10 +14,6 @@ type Subsystem interface {
 	Name() string
 	// Set 设置某个 cgroup 在这个 subsystem 中的资源限制
 	Set(cgroupPath string, res *ResourceConfig) error
-	// Apply 将进程添加到某个 cgroup 中
-	Apply(cgroupPath string, pid int) error
-	// Remove 移除某个 cgroup
-	Remove(cgroupPath string) error
 }
 
 var (
